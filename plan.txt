@@ -1,0 +1,18 @@
+
+    # Login
+    ## Simple fake login (POC)
+    
+    # Glossaries (POC)
+    ## List Glossaries
+    ## Load Glossary (POC)
+    ## Update glossary with changes
+    
+    # Business Rules (POC)
+    ## List rules (POC) 
+
+    # Terms
+    ## List terms (POC)
+    ## Create new term (POC) 
+    ## Read existing term (POC)
+    ## Update existing term (POC)
+    ## Delete existing term OOS   
