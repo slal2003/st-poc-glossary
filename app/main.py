@@ -7,8 +7,10 @@ import time
 
 
 
-from helpers import create_embeddings
+from helpers import create_embeddings, generate_definition, generate_evaluation
 from clusters import cluster_and_find_duplicate_clusters, plot_clusters, cluster_terms
+
+
 
 
 def authentified_user(username, password, user_list):
@@ -61,34 +63,7 @@ def get_embeddings(df):
     else:
         df=  create_embeddings(df)
         print(df['embeddings'].head(2))
-        
-# def process_glossary_1(df):
-#     with st.spinner('In progress'):
-#         st.info('Create embeddings...')
-#         df = create_embeddings(df)
-#         st.info('Finding possible duplicates...')
-#         df, clusters, dupes = cluster_terms(df, 1)
-#         st.write(f'there are {clusters}')
-#         fig = plot_clusters(df, 'embeddings')
-#         st.plotly_chart(fig)
-#         print(clusters)
-#         if clusters > 0:
-#             duplicate_clusters = df['cluster'].value_counts()
-#             duplicate_clusters = duplicate_clusters[duplicate_clusters >1]
-#             dupe_list = duplicate_clusters.index.to_list()
-#         # duplicates_df = df[df['cluster'].isin(duplicate_clusters)]
-#         st.session_state.selected_cluster = selectbox(
-#             'select the cluster to fix',
-#             dupe_list,
-#             )
-#         cont = st.button('Continue')
-#         if cont:
-#             st.write('hello')
-#             selected_df = df[df['cluster'] == st.session_state.selected_cluster][['cluster', 'term', 'definition']]
-#             st.dataframe(selected_df)
-   
-    
-    
+
 def analyse_glossary(df):
     # If there's no state or df has changed, do the expensive computation
     if 'df_embeddings' in st.session_state: # or st.session_state.df != df:
@@ -128,17 +103,13 @@ def analyse_glossary(df):
             if st.session_state.dupes > 0:
                 print(st.session_state.dupes)
                 df_clusters = df[['cluster', 'term', 'owner','definition']].sort_values(['cluster', 'term','owner', 'definition'])
-                st.dataframe(df_clusters)
-                duplicate_clusters = st.session_state.df_embeddings['cluster'].value_counts()
-                duplicate_clusters = duplicate_clusters[duplicate_clusters >1]
-                st.session_state.dupe_list = duplicate_clusters.index.to_list()
+                df_clusters['dupes_in_cluster'] = df_clusters.groupby('cluster')['cluster'].transform('count')
+                df_clusters = df_clusters[df_clusters['dupes_in_cluster']>1]
                 
-
-                  
-        
-            
-
-
+                st.markdown("""
+                            ## Terms with duplicates to solve
+                            """)
+                st.dataframe(df_clusters)
 
 def manage():
     st.title('Manage Glossary')
@@ -151,9 +122,45 @@ def manage():
     if st.session_state.button_pressed:
         st.write('button pressed')
         analyse_glossary(st.session_state.loaded_glossary)
-
-def add_terms():
+            
+def add_term():
     st.title('Add new terms')
+    data_entry, result = st.columns([1,2])
+        
+    with data_entry:
+        if 'new_term' not in st.session_state:
+            st.session_state.new_term = ""
+        new_term = st.text_input('Enter new term', value=st.session_state.new_term) 
+
+    if new_term != '':
+        if new_term in st.session_state.df['term'].to_list():
+            st.warning(f" ⚠️ ***'{new_term}'*** already exists ")
+            found_term = st.session_state.df[st.session_state.df['term'] == new_term]
+            st.markdown(f"""
+                        #### {found_term['term'].values[0]}
+                        - {found_term['definition'].values[0]}
+                        """)
+            option = st.selectbox('select your option:', ('I will use this term', 'I will enter a new term'))
+            if option == 'I will enter a new term':
+                st.session_state.new_term = ""
+            else: 
+                pass
+        else: 
+            st.write("item doesn't exists")
+            with st.form('new_item'):
+                domain = st.text_input('enter domain')
+                keywords = st.text_input('enter some keyword for the definition')
+                submitted = st.form_submit_button('Submit')
+                if submitted:
+                    definition = generate_definition(new_term, domain, keywords)
+                    st.markdown(definition.content)
+                    evaluation = generate_evaluation(new_term, domain, keywords, definition)
+                    st.subheader('Evaluation')
+                    st.markdown(evaluation.content)
+
+            
+            
+        
 
 def add_sidebar():
     with st.sidebar:
@@ -166,9 +173,9 @@ def add_sidebar():
         )
         st.session_state.distance = st.slider('select distance', 0.00, 0.20, 0.01)
         add_vertical_space(30)
-        # "st.session_state object: ", st.session_state
+        "st.session_state object: ", st.session_state
     return st.session_state.option, st.session_state.distance
-           
+
 
 def main():    
     if "shared" not in st.session_state:
@@ -180,6 +187,7 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    placeholder = st.empty()
     add_sidebar()
         
     if st.session_state.option == '1. Load Glossary':
@@ -192,18 +200,19 @@ def main():
         except:
             print('no valid user 1')
         
-    if st.session_state.option == '3. process glossary':
+    if st.session_state.option == '3. Add new item to glossary':
         try:
             print(st.session_state.username)
+            add_term()
         except:
             print('no valid user 2')
             
-    if st.session_state.option == '4. Add new item to glossary':
-        try:
-            st.session_state.username
-            add_terms()
-        except:
-            print('no valid user 4')
+    # if st.session_state.option == '4. Add new item to glossary':
+    #     try:
+    #         st.session_state.username
+    #         add_terms()
+    #     except:
+    #         print('no valid user 4')
 
 if __name__ == '__main__':
     main()
