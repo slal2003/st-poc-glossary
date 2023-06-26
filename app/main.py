@@ -5,6 +5,8 @@ import pandas as pd
 import dotenv
 import time
 
+
+
 from helpers import create_embeddings
 from clusters import cluster_and_find_duplicate_clusters, plot_clusters, cluster_terms
 
@@ -102,6 +104,12 @@ def analyse_glossary(df):
             if st.session_state.dupes > 0:
                 print(st.session_state.dupes)
                 df_clusters = df[['cluster', 'term', 'owner','definition']].sort_values(['cluster', 'term','owner', 'definition'])
+                df_clusters['dupes_in_cluster'] = df_clusters.groupby('cluster')['cluster'].transform('count')
+                df_clusters = df_clusters[df_clusters['dupes_in_cluster']>1]
+                
+                st.markdown("""
+                            ## Terms with duplicates to solve
+                            """)
                 st.dataframe(df_clusters)
                 
     # Now this will only rerun when selected_cluster changes
@@ -121,9 +129,9 @@ def analyse_glossary(df):
                 print(st.session_state.dupes)
                 df_clusters = df[['cluster', 'term', 'owner','definition']].sort_values(['cluster', 'term','owner', 'definition'])
                 st.dataframe(df_clusters)
-                # duplicate_clusters = st.session_state.df_embeddings['cluster'].value_counts()
-                # duplicate_clusters = duplicate_clusters[duplicate_clusters >1]
-                # st.session_state.dupe_list = duplicate_clusters.index.to_list()
+                duplicate_clusters = st.session_state.df_embeddings['cluster'].value_counts()
+                duplicate_clusters = duplicate_clusters[duplicate_clusters >1]
+                st.session_state.dupe_list = duplicate_clusters.index.to_list()
                 
 
                   
@@ -156,9 +164,9 @@ def add_sidebar():
                 '2. Manage Glossary',
                 '3. Add new item to glossary']            
         )
-        st.session_state.distance = st.slider('select distance', 0.0, 1.0, 0.01)
+        st.session_state.distance = st.slider('select distance', 0.00, 0.20, 0.01)
         add_vertical_space(30)
-        "st.session_state object: ", st.session_state
+        # "st.session_state object: ", st.session_state
     return st.session_state.option, st.session_state.distance
            
 
