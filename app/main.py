@@ -7,7 +7,7 @@ import time
 
 
 
-from helpers import create_embeddings, generate_definition, generate_evaluation
+from helpers import create_openai_embeddings, create_azure_embeddings, generate_definition,generate_openai_definition, generate_openai_evaluation, generate_azure_evaluation
 from clusters import cluster_and_find_duplicate_clusters, plot_clusters, cluster_terms
 
 
@@ -61,7 +61,7 @@ def get_embeddings(df):
     if embeddings_exist(df):
         print('embedding exists')
     else:
-        df=  create_embeddings(df)
+        df=  create_openai_embeddings(df)
         print(df['embeddings'].head(2))
 
 def analyse_glossary(df):
@@ -92,7 +92,7 @@ def analyse_glossary(df):
         print('1er if')
         with st.spinner('In progress'):
             st.info('Create embeddings...')
-            st.session_state.df_embeddings = create_embeddings(df)
+            st.session_state.df_embeddings = create_openai_embeddings(df)
             st.session_state.df = df
             st.info('Finding possible duplicates...')
             
@@ -152,27 +152,30 @@ def add_term():
                 keywords = st.text_input('enter some keyword for the definition')
                 submitted = st.form_submit_button('Submit')
                 if submitted:
-                    definition = generate_definition(new_term, domain, keywords)
-                    st.markdown(definition.content)
-                    evaluation = generate_evaluation(new_term, domain, keywords, definition)
-                    st.subheader('Evaluation')
-                    st.markdown(evaluation.content)
-
-            
-            
-        
+                    print(f'a new term was submitted: it is {new_term}')
+                    with st.container():
+                        definition = generate_openai_definition(new_term, domain, keywords)
+                        st.markdown('## Definition')
+                        st.info(definition.content)
+                        st.divider()
+                        st.markdown('## Evaluation')
+                        evaluation = generate_openai_evaluation(new_term, domain, keywords, definition)
+                        st.info(evaluation.content)
 
 def add_sidebar():
     with st.sidebar:
+        st.subheader('Clustering Distance')
+        st.session_state.distance = st.slider('select distance', 0.00, 0.20, 0.01)
+        add_vertical_space(5)
+        st.subheader('STEPS')
         st.session_state.option = st.radio(
-            'Menu',
+            'Select the step',
             options = [
                 '1. Load Glossary',
                 '2. Manage Glossary',
                 '3. Add new item to glossary']            
         )
-        st.session_state.distance = st.slider('select distance', 0.00, 0.20, 0.01)
-        add_vertical_space(30)
+        add_vertical_space(5)
         "st.session_state object: ", st.session_state
     return st.session_state.option, st.session_state.distance
 
@@ -207,12 +210,6 @@ def main():
         except:
             print('no valid user 2')
             
-    # if st.session_state.option == '4. Add new item to glossary':
-    #     try:
-    #         st.session_state.username
-    #         add_terms()
-    #     except:
-    #         print('no valid user 4')
 
 if __name__ == '__main__':
     main()
