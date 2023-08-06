@@ -5,12 +5,8 @@ import pandas as pd
 import dotenv
 import time
 
-
-
 from helpers import create_openai_embeddings, create_azure_embeddings, generate_definition,generate_openai_definition, generate_openai_evaluation, generate_azure_evaluation
 from clusters import cluster_and_find_duplicate_clusters, plot_clusters, cluster_terms
-
-
 
 
 def authentified_user(username, password, user_list):
@@ -131,18 +127,32 @@ def add_term():
         if 'new_term' not in st.session_state:
             st.session_state.new_term = ""
         new_term = st.text_input('Enter new term', value=st.session_state.new_term) 
-
+        
     if new_term != '':
-        if new_term in st.session_state.df['term'].to_list():
+        # deal with capitalisation
+        lower_new_term = new_term.lower()
+        existing_lower_terms = [t.lower() for t in st.session_state.df['term'].to_list()]
+        
+        # display a warning
+        if lower_new_term in existing_lower_terms:
             st.warning(f" ⚠️ ***'{new_term}'*** already exists ")
-            found_term = st.session_state.df[st.session_state.df['term'] == new_term]
+
+            # Retrieve the term using the lowercase match
+            found_term = st.session_state.df[st.session_state.df['term'].str.lower() == lower_new_term]
+            
+            print(f'found {found_term} ')
             st.markdown(f"""
                         #### {found_term['term'].values[0]}
                         - {found_term['definition'].values[0]}
                         """)
+            
+            ## Offer options
             option = st.selectbox('select your option:', ('I will use this term', 'I will enter a new term'))
+            
             if option == 'I will enter a new term':
                 st.session_state.new_term = ""
+                st.info('enter a new term')
+                
             else: 
                 pass
         else: 
