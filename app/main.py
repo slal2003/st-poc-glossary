@@ -8,126 +8,159 @@ import time
 from helpers import create_openai_embeddings, create_azure_embeddings, generate_definition,generate_openai_definition, generate_openai_evaluation, generate_azure_evaluation
 from clusters import cluster_and_find_duplicate_clusters, plot_clusters, cluster_terms
 
+def initialize_session_state():
+    """Initialize session state variables."""
+    default_values = {
+        "shared": True,
+        "new_term": "",
+        "username": "",
+        "password": "",
+        "button_pressed": False,
+        "distance": 0.01,
+        "option": '1. Load Glossary'
+    }
+    for key, val in default_values.items():
+        if key not in st.session_state:
+            st.session_state[key] = val
 
 def authentified_user(username, password, user_list):
-    invalid_credentials = True
-    if username not in user_list or password != 'abc':
-        return False
-    else:
-        return True
-    
-def load_glossary():
-    st.title('Load Glossary')
-    glossary = ''        
-    
-    try:
-        col1, col2 = st.columns(2, gap="medium")
-        with col1:
-            glossary = pd.read_csv(st.file_uploader('Drag and Drop Glossary')) 
-            st.session_state.glossary_file = glossary.Name()
-    except:
-        print('file not dragged yet')
-    if len(glossary) >0:
-        with col1:
-            st.info('File loaded. Thank you')
-            valid_users = glossary['owner'].unique()
-            with col2:
-                st.session_state.username = st.text_input('Enter your username')
-                st.session_state.password = st.text_input('Enter your password', type='password')
-                valid_user = authentified_user(st.session_state.username, st.session_state.password, valid_users)
-                if not valid_user:
-                    st.warning(f'unknown user')
-                else:
-                    with col2:
-                        st.info(f'user: {st.session_state.username} is valid')
-        add_vertical_space(5)
-        if valid_user:
-            st.subheader(f'Glossary Loaded')
-            st.dataframe(glossary)
-            st.session_state.loaded_glossary = glossary
-            # st.session_state.loaded_glossary     
-    else:
-        with col1:
-            st.warning('upload a file')
-            
-def embeddings_exist(df):
-    return False
+    return username in user_list and password == 'abc'
 
-def get_embeddings(df):
-    if embeddings_exist(df):
-        print('embedding exists')
-    else:
-        df=  create_openai_embeddings(df)
-        print(df['embeddings'].head(2))
+def load_glossary():
+    """Load the glossary."""
+    st.title('Load Glossary')
+    col1, col2 = st.columns(2, gap="medium")
+    uploaded_file = col1.file_uploader('Drag and Drop Glossary')
+    
+    if uploaded_file:
+        glossary = pd.read_csv(uploaded_file)
+        st.session_state.glossary_file = uploaded_file.name
+        valid_users = glossary['owner'].unique()
+        
+        st.session_state.username = col2.text_input('Enter your username')
+        st.session_state.password = col2.text_input('Enter your password', type='password')
+        
+        if st.session_state.username and st.session_state.password:
+            if authentified_user(st.session_state.username, st.session_state.password, valid_users):
+                col2.info(f'user: {st.session_state.username} is valid')
+                st.subheader(f'Glossary Loaded')
+                st.dataframe(glossary)
+                st.session_state.loaded_glossary = glossary
+            else:
+                col2.warning(f'unknown user')
+    
+
+
 
 def analyse_glossary(df):
-    # If there's no state or df has changed, do the expensive computation
-    if 'df_embeddings' in st.session_state: # or st.session_state.df != df:
-        print('df embedding exists')
+    # Check if embeddings exist and perform the analysis
+    if 'df_embeddings' in st.session_state:
         with st.spinner('In progress'):
-            st.info('embedding exists...')
+            st.info('Embedding exists...')
             st.session_state.df = df
             st.info('Finding possible duplicates...')
             st.session_state.df_embeddings, st.session_state.clusters, st.session_state.dupes = cluster_terms(st.session_state.df_embeddings, st.session_state.distance)
-            st.write(f'there are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
+            st.write(f'There are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
             fig = plot_clusters(st.session_state.df_embeddings, 'embeddings')
             st.plotly_chart(fig)
-            if st.session_state.dupes > 0:
-                print(st.session_state.dupes)
-                df_clusters = df[['cluster', 'term', 'owner','definition']].sort_values(['cluster', 'term','owner', 'definition'])
-                df_clusters['dupes_in_cluster'] = df_clusters.groupby('cluster')['cluster'].transform('count')
-                df_clusters = df_clusters[df_clusters['dupes_in_cluster']>1]
-                
-                st.markdown("""
-                            ## Terms with duplicates to solve
-                            """)
-                st.dataframe(df_clusters)
-                
-    # Now this will only rerun when selected_cluster changes
-    if 'df_embeddings' not in st.session_state: # or st.session_state.df != df:
-        print('1er if')
+
+    # If embeddings do not exist, create them and perform the analysis
+    else:
         with st.spinner('In progress'):
             st.info('Create embeddings...')
             st.session_state.df_embeddings = create_openai_embeddings(df)
             st.session_state.df = df
             st.info('Finding possible duplicates...')
-            
             st.session_state.df_embeddings, st.session_state.clusters, st.session_state.dupes = cluster_terms(st.session_state.df_embeddings, st.session_state.distance)
-            st.write(f'there are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
+            st.write(f'There are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
             fig = plot_clusters(st.session_state.df_embeddings, 'embeddings')
             st.plotly_chart(fig)
-            if st.session_state.dupes > 0:
-                print(st.session_state.dupes)
-                df_clusters = df[['cluster', 'term', 'owner','definition']].sort_values(['cluster', 'term','owner', 'definition'])
-                df_clusters['dupes_in_cluster'] = df_clusters.groupby('cluster')['cluster'].transform('count')
-                df_clusters = df_clusters[df_clusters['dupes_in_cluster']>1]
-                
-                st.markdown("""
-                            ## Terms with duplicates to solve
-                            """)
-                st.dataframe(df_clusters)
+
+    # Display duplicates if they exist
+    if st.session_state.dupes > 0:
+        df_clusters = df[['cluster', 'term', 'definition']].sort_values(['cluster', 'term', 'definition'])
+        df_clusters['dupes_in_cluster'] = df_clusters.groupby('cluster')['cluster'].transform('count')
+        df_clusters = df_clusters[df_clusters['dupes_in_cluster'] > 1]
+        st.markdown("## Terms with duplicates to solve")
+        st.dataframe(df_clusters)
+
+        # Create a list of cluster names
+        cluster_names = [f"cluster_{i}" for i in range(st.session_state.clusters)]
+        
+        # Add a select box for cluster selection and retain the selected cluster across reruns
+        st.markdown("## Select 1 set of duplicates")
+        selected_cluster = st.selectbox("Select a cluster to view duplicates:", cluster_names, index=st.session_state.get('selected_cluster_index', 0))
+        st.session_state.selected_cluster_index = cluster_names.index(selected_cluster)
+        
+        # Extract the cluster number from the selected cluster name
+        cluster_num = int(selected_cluster.split("_")[1])
+        
+        # Filter the dataframe for the selected cluster
+        df_cluster = df[df['cluster'] == cluster_num]
+        
+        # Display the terms for the selected cluster
+        st.dataframe(df_cluster[['cluster', 'term', 'owner', 'definition']].sort_values(['cluster', 'term', 'owner', 'definition']))
+        
+        
+        
+        
+        # Filter the dataframe for the selected cluster
+        df_cluster = df[df['cluster'] == cluster_num]
+
+        # Create a list of terms from the filtered dataframe
+        terms_list = df_cluster['term'].tolist()
+
+        # Allow the user to multi-select terms
+        selected_terms = st.multiselect("Select terms to view details:", terms_list)
+
+        # Filter the dataframe based on the selected terms
+        df_selected = df_cluster[df_cluster['term'].isin(selected_terms)]
+
+        # Display the selected terms
+        #send_to_owners = st.dataframe(df_selected[['cluster', 'term', 'owner', 'definition']].sort_values(['cluster', 'term', 'owner', 'definition']))
+        
+        
+        # After displaying the selected terms
+        send_to_owners = df_selected[['cluster', 'term', 'owner', 'definition']].sort_values(['cluster', 'term', 'owner', 'definition'])
+
+        # Button to trigger the mock email sending
+        if st.button('Email to Owners'):
+            # Extracting the required information for the mock email
+            recipients = send_to_owners['owner'].unique().tolist()  # Assuming 'owner' column contains the names of the owners
+            subject = "duplicates to fix"
+            terms_list = send_to_owners['term'].tolist()
+
+            # Display the mock email details
+            st.info(f"""
+            Email Details:
+            - Recipients: {', '.join(recipients)}
+            - Subject: {subject}
+            - Terms: {', '.join(terms_list)}
+            """)
+
+        
+        
+        
+        
+        
 
 def manage():
     st.title('Manage Glossary')
-    st.info(f'''
-        username = {st.session_state.username} \n
-        Glossary Loaded
-        ''')
+    st.info(f'Username = {st.session_state.username}\nGlossary Loaded')
     st.dataframe(st.session_state.loaded_glossary)
-    st.session_state.button_pressed = st.button('start analysis')
-    if st.session_state.button_pressed:
-        st.write('button pressed')
+
+    # Check if the "Start Analysis" button has been pressed
+    if st.session_state.get('button_pressed', False) or st.button('Start Analysis'):
+        st.session_state.button_pressed = True
         analyse_glossary(st.session_state.loaded_glossary)
-            
+
+        
 def add_term():
+    """Add a new term."""
     st.title('Add new terms')
     data_entry, result = st.columns([1,2])
-        
-    with data_entry:
-        if 'new_term' not in st.session_state:
-            st.session_state.new_term = ""
-        new_term = st.text_input('Enter new term', value=st.session_state.new_term) 
-        
+    
+    new_term = data_entry.text_input('Enter new term', value=st.session_state.new_term)
     if new_term != '':
         # deal with capitalisation
         lower_new_term = new_term.lower()
@@ -152,6 +185,7 @@ def add_term():
             if option == 'I will enter a new term':
                 st.session_state.new_term = ""
                 st.info('enter a new term')
+                st.session_state.new_term = ''
                 
             else: 
                 pass
@@ -173,53 +207,35 @@ def add_term():
                         st.info(evaluation.content)
 
 def add_sidebar():
+    """Add sidebar elements."""
     with st.sidebar:
         st.subheader('Clustering Distance')
-        st.session_state.distance = st.slider('select distance', 0.00, 0.20, 0.01)
+        st.session_state.distance = st.slider('select distance', 0.00, 0.20, st.session_state.distance)
         add_vertical_space(5)
         st.subheader('STEPS')
-        st.session_state.option = st.radio(
-            'Select the step',
-            options = [
-                '1. Load Glossary',
-                '2. Manage Glossary',
-                '3. Add new item to glossary']            
-        )
+        st.session_state.option = st.radio('Select the step', options=['1. Load Glossary', '2. Manage Glossary', '3. Add new item to glossary'])
         add_vertical_space(5)
         "st.session_state object: ", st.session_state
-    return st.session_state.option, st.session_state.distance
 
-
-def main():    
-    if "shared" not in st.session_state:
-            st.session_state["shared"] = True
-
+def main():
+    """Main function."""
+    initialize_session_state()
+    
     st.set_page_config(
         page_title="Glossary POC",
         page_icon=":book:",
         layout="wide",
         initial_sidebar_state="expanded",
     )
-    placeholder = st.empty()
+    
     add_sidebar()
-        
+    
     if st.session_state.option == '1. Load Glossary':
         load_glossary()
-        
-    if st.session_state.option == '2. Manage Glossary':
-        try: 
-            print(st.session_state.username)
-            manage()
-        except:
-            print('no valid user 1')
-        
-    if st.session_state.option == '3. Add new item to glossary':
-        try:
-            print(st.session_state.username)
-            add_term()
-        except:
-            print('no valid user 2')
-            
+    elif st.session_state.option == '2. Manage Glossary':
+        manage()
+    elif st.session_state.option == '3. Add new item to glossary':
+        add_term()
 
 if __name__ == '__main__':
     main()
