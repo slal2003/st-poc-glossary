@@ -138,12 +138,6 @@ def analyse_glossary(df):
             - Terms: {', '.join(terms_list)}
             """)
 
-        
-        
-        
-        
-        
-
 def manage():
     st.title('Manage Glossary')
     st.info(f'Username = {st.session_state.username}\nGlossary Loaded')
@@ -154,7 +148,6 @@ def manage():
         st.session_state.button_pressed = True
         analyse_glossary(st.session_state.loaded_glossary)
 
-        
 def add_term():
     """Add a new term."""
     st.title('Add new terms')
@@ -191,6 +184,7 @@ def add_term():
                 pass
         else: 
             st.write("item doesn't exists")
+            evaluation_displayed = False
             with st.form('new_item'):
                 domain = st.text_input('enter domain')
                 keywords = st.text_input('enter some keyword for the definition')
@@ -205,6 +199,12 @@ def add_term():
                         st.markdown('## Evaluation')
                         evaluation = generate_openai_evaluation(new_term, domain, keywords, definition)
                         st.info(evaluation.content)
+                        evaluation_displayed = True
+                        
+            if evaluation_displayed:
+                st.subheader('What do you decide')
+                st.button('Submit anyway')
+                st.button('I will change definition and/or term')
 
 def add_sidebar():
     """Add sidebar elements."""

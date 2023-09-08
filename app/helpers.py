@@ -104,19 +104,27 @@ def generate_openai_definition( term, domain, keywords):
         # SystemMessage(content=f'You are a seasoned Data Stewart, expert in data analytics and business glossaries'),
         HumanMessage(content=f'Suggest a definition for this term: {term} of this {domain} and these keywords {keywords} making sure the definition is concise, clear and elaborate enough to discriminate against other terms from this domain. return the answer in markdown format. It needs to be ready to populate the glossary. makle sure only the definition is output and not the rules, title or anything else')
     ]
-    llm = ChatOpenAI(temperature=0.9, model_name="gpt-4-0613", max_tokens=200)
+    llm = ChatOpenAI(temperature=0.9, model_name="gpt-3.5-turbo-0613", max_tokens=200)
     print(llm)
     
     definition = llm(messages)
     return definition
 
-def generate_evaluation_openai(term, domain, keywords, definition):
+def generate_openai_evaluation(term, domain, keywords, definition):
         load_dotenv(find_dotenv())
         messages = [
-            SystemMessage(content=f'You are a seasoned Data Stewart, expert in data analytics and business glossaries'),
-            HumanMessage(content=f'Evaluate the adequation of this business/data analytics {term} from this {domain} its keywords {keywords} and its GPT generated {definition} and suggest better term to avoid confusion and ambiguity. It is important to limit yourself to the evaluation only')
+            SystemMessage(content=f'You are responsible for our company glossary to make sure it only contains terms and definitions related to these terms that are unambiguous and clear so confusion and duplications are avoided'),
+            # HumanMessage(content=f'Evaluate the adequation of this business/data analytics {term} from this {domain} its keywords {keywords} and its GPT generated {definition} and suggest better term to avoid confusion and ambiguity. It is important to limit yourself to the evaluation only')
+            HumanMessage(content=f"""
+                         Unless the term {term} and the keywords {keywords} provided to build a perfect definition are clear and make sense in the {domain} domain, provide point form, markdown formatted improvement suggestions.
+                         Here is the definition that GPT was able to provide based on the input he got: {definition} \n
+                         Start by providing a score in percentage to denote your overall evaluation in the 1st line.
+                         Then suggest a new better term if needed and make sure explaining why.
+                         Finally provide a better definition if needed explaining why or suggest to the user to repeat his request but with providing more information to allow creation of a better definintion
+                                                  
+                         """)
         ]
-        llm = ChatOpenAI(temperature=0.9, model_name="gpt-4-0613", max_tokens=200)
+        llm = ChatOpenAI(temperature=0.9, model_name="gpt-3.5-turbo-0613", max_tokens=1200)
         evaluation = llm(messages)
         return evaluation
     
@@ -139,7 +147,7 @@ def generate_azure_evaluation(term, domain, keywords, definition):
         evaluation = llm(messages)
         return evaluation
 
-def generate_openai_evaluation(term, domain, keywords, definition):
+def generate_openai_evaluation2(term, domain, keywords, definition):
         load_dotenv(find_dotenv())
         messages = [
             SystemMessage(content=f'You are a seasoned Data Stewart, expert in data analytics and business glossaries'),
