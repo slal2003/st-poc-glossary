@@ -24,7 +24,7 @@ def create_azure_embeddings(df):
     def embed(text):
         print('embedding creation started')
         embeddings = OpenAIEmbeddings (
-        deployment='ikea-gpt-text-embedding-ada-002',
+        deployment='acme-gpt-text-embedding-ada-002',
         openai_api_type= os.getenv('openai.api_type'),
         openai_api_base= os.getenv('openai.api_base'),
         openai_api_key= os.getenv('openai.api_key'),
@@ -85,7 +85,7 @@ def generate_definition( term, domain, keywords):
         HumanMessage(content=f'Suggest a definition for this term: {term} of this {domain} and these keywords {keywords} making sure the definition is concise, clear and elaborate enough to discriminate against other terms from this domain. return the answer in markdown format. It needs to be ready to populate the glossary. makle sure only the definition is output and not the rules, title or anything else')
     ]
     llm = AzureChatOpenAI(
-        deployment_name='ikea-gpt-35-turbo',
+        deployment_name='acme-gpt-35-turbo',
         model=os.getenv('COMPLETIONS_MODEL'),
         openai_api_base= os.getenv('openai.api_base'),
         openai_api_version=os.getenv('openai.api_version'),
@@ -135,7 +135,7 @@ def generate_azure_evaluation(term, domain, keywords, definition):
             HumanMessage(content=f'Evaluate the adequation of this business/data analytics {term} from this {domain} its keywords {keywords} and its GPT generated {definition} and suggest better term to avoid confusion and ambiguity. It is important to limit yourself to the evaluation only')
         ]
         llm = AzureChatOpenAI(
-            deployment_name='ikea-gpt-35-turbo',
+            deployment_name='acme-gpt-35-turbo',
             model=os.getenv('COMPLETIONS_MODEL'),
             openai_api_base= os.getenv('openai.api_base'),
             openai_api_version=os.getenv('openai.api_version'),
