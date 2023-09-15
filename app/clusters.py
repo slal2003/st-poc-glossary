@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_distances
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
+from langchain.embeddings import HuggingFaceEmbeddings, SentenceTransformerEmbeddings
 import umap
 import plotly.express as px
 import pandas as pd

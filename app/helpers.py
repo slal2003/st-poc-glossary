@@ -35,8 +35,6 @@ def create_azure_embeddings(df):
         print(text)
         emb = embeddings.embed_query(text)
         return emb
-    # df['text'] = df['definition'] + ' ' + df['tags']
-    # df['text'] = np.where(df['definition'] == '', df['term'], df['definition']) + ' ' + df['tags']
     df['text'] = np.where(df['definition'].fillna('') == '', df['term'].fillna(''), df['definition'].fillna('')) + ' ' + df['tags'].fillna('')
     df['embeddings'] = df['text'].apply(embed)
     return df
