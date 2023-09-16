@@ -5,7 +5,7 @@ import pandas as pd
 import dotenv
 import time
 
-from helpers import create_openai_embeddings, create_azure_embeddings, generate_definition,generate_openai_definition, generate_openai_evaluation, generate_azure_evaluation
+from helpers import create_openai_embeddings, create_azure_embeddings, generate_definition,generate_openai_definition, generate_openai_evaluation, generate_azure_evaluation, existing_similar_terms, find_closest_terms
 from clusters import cluster_and_find_duplicate_clusters, plot_clusters, cluster_terms
 
 def initialize_session_state():
@@ -190,7 +190,10 @@ def add_term():
                 keywords = st.text_input('enter some keyword for the definition')
                 submitted = st.form_submit_button('Submit')
                 if submitted:
+                    n=4
                     print(f'a new term was submitted: it is {new_term}')
+                    closest_terms = find_closest_terms(new_term, domain, keywords, st.session_state.df, n)
+                    st.data_editor(closest_terms)
                     with st.container():
                         definition = generate_openai_definition(new_term, domain, keywords)
                         st.markdown('## Definition')
