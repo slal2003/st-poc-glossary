@@ -7,6 +7,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI, AzureChatOpenAI
 import openai
+from sklearn.metrics.pairwise import pairwise_distances
 from langchain.schema import (
     AIMessage,
     HumanMessage,
@@ -39,12 +40,15 @@ def create_azure_embeddings(df):
     df['embeddings'] = df['text'].apply(embed)
     return df
 
+def open_ai_embed(text):
+    return OpenAIEmbeddings().embed_query(text)
+
 def create_openai_embeddings(df):
     load_dotenv(find_dotenv())
     def embed(text):
         return OpenAIEmbeddings().embed_query(text)
     df['text'] = df['definition'] + ' ' + df['tags']
-    df['embeddings'] = df['text'].apply(embed)
+    df['embeddings'] = df['text'].apply(open_ai_embed)
     return df
       
 def extract_tags(term, definition):
@@ -154,3 +158,31 @@ def generate_openai_evaluation2(term, domain, keywords, definition):
         llm = ChatOpenAI(temperature=0.9, model_name="gpt-4-0613", max_tokens=200)
         evaluation = llm(messages)
         return evaluation
+    
+    
+def existing_similar_terms(lower_new_term, domain, keywords, distance):
+    new_term_text = keywords 
+    new_term_embedddings = open_ai_embed(new_term_text)
+    print(f'we will find the closest terms to {lower_new_term} in {domain} using with these {keywords} and within this {distance} ')
+    print(new_term_embedddings)
+    
+    
+    
+def find_closest_terms(lower_new_term, domain, keywords, df, n):
+    # Compute the pairwise distances
+    print(f"col = {df.columns}")
+    new_term_text = keywords 
+    new_embeddings = open_ai_embed(new_term_text)
+    distances = pairwise_distances([new_embeddings], df['embeddings'].tolist())[0]
+    
+    # Create a new dataframe with terms and their corresponding distances
+    df_distances = pd.DataFrame({
+        'term': df['term'],
+        'definition': df['definition'],
+        'distance': distances
+    })
+    
+    # Sort the dataframe by distance in ascending order and select the top n terms
+    closest_terms = df_distances.sort_values(by='distance', ascending=True).head(n)[['distance','term', 'definition']]
+    
+    return closest_terms.reset_index(drop=True)
