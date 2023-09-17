@@ -195,12 +195,12 @@ def add_term():
                     closest_terms = find_closest_terms(new_term, domain, keywords, st.session_state.df, n)
                     st.data_editor(closest_terms)
                     with st.container():
-                        definition = generate_openai_definition(new_term, domain, keywords)
+                        definition = generate_openai_definition(new_term, domain, keywords, closest_terms.head(4))
                         st.markdown('## Definition')
                         st.info(definition.content)
                         st.divider()
                         st.markdown('## Evaluation')
-                        evaluation = generate_openai_evaluation(new_term, domain, keywords, definition)
+                        evaluation = generate_openai_evaluation(new_term, domain, keywords, definition, closest_terms.head(4))
                         st.info(evaluation.content)
                         evaluation_displayed = True
                         
