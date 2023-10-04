@@ -58,11 +58,18 @@ def analyse_glossary(df):
         with st.spinner('In progress'):
             st.info('Embedding exists...')
             st.session_state.df = df
-            st.info('Finding possible duplicates...')
-            st.session_state.df_embeddings, st.session_state.clusters, st.session_state.dupes = cluster_terms(st.session_state.df_embeddings, st.session_state.distance)
-            st.write(f'There are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
-            fig = plot_clusters(st.session_state.df_embeddings, 'embeddings')
-            st.plotly_chart(fig)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.subheader('Clustering Distance')
+                st.session_state.distance = st.slider('select distance', 0.00, 0.20, st.session_state.distance)
+                st.info('Finding possible duplicates...')
+                st.session_state.df_embeddings, st.session_state.clusters, st.session_state.dupes = cluster_terms(st.session_state.df_embeddings, st.session_state.distance)
+                st.write(f'There are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
+            
+            with col2:
+                fig = plot_clusters(st.session_state.df_embeddings, 'embeddings')
+                st.plotly_chart(fig)
 
     # If embeddings do not exist, create them and perform the analysis
     else:
@@ -70,11 +77,19 @@ def analyse_glossary(df):
             st.info('Create embeddings...')
             st.session_state.df_embeddings = create_openai_embeddings(df)
             st.session_state.df = df
-            st.info('Finding possible duplicates...')
-            st.session_state.df_embeddings, st.session_state.clusters, st.session_state.dupes = cluster_terms(st.session_state.df_embeddings, st.session_state.distance)
-            st.write(f'There are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
-            fig = plot_clusters(st.session_state.df_embeddings, 'embeddings')
-            st.plotly_chart(fig)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader('Clustering Distance')
+                st.session_state.distance = st.slider('select distance', 0.00, 0.20, st.session_state.distance)
+                st.info('Finding possible duplicates...')
+                st.session_state.df_embeddings, st.session_state.clusters, st.session_state.dupes = cluster_terms(st.session_state.df_embeddings, st.session_state.distance)
+                st.write(f'There are {st.session_state.clusters} clusters for {len(st.session_state.df_embeddings.index)} definitions')
+                
+            with col2:
+                fig = plot_clusters(st.session_state.df_embeddings, 'embeddings')
+                st.plotly_chart(fig)
 
     # Display duplicates if they exist
     if st.session_state.dupes > 0:
@@ -124,11 +139,12 @@ def analyse_glossary(df):
         send_to_owners = df_selected[['cluster', 'term', 'owner', 'definition']].sort_values(['cluster', 'term', 'owner', 'definition'])
 
         # Button to trigger the mock email sending
-        if st.button('Email to Owners'):
+        if st.button('💬   to Owners'):
             # Extracting the required information for the mock email
             recipients = send_to_owners['owner'].unique().tolist()  # Assuming 'owner' column contains the names of the owners
-            subject = "duplicates to fix"
+            subject = "Duplicates to fix"
             terms_list = send_to_owners['term'].tolist()
+            body = "Please have a look at the terms above and their definitions and decide if they need to be merged or have their definitions re-written to avoid any ambiguities"
 
             # Display the mock email details
             st.info(f"""
@@ -136,6 +152,7 @@ def analyse_glossary(df):
             - Recipients: {', '.join(recipients)}
             - Subject: {subject}
             - Terms: {', '.join(terms_list)}
+            - Body: {body}
             """)
 
 def manage():
@@ -212,13 +229,13 @@ def add_term():
 def add_sidebar():
     """Add sidebar elements."""
     with st.sidebar:
-        st.subheader('Clustering Distance')
-        st.session_state.distance = st.slider('select distance', 0.00, 0.20, st.session_state.distance)
-        add_vertical_space(5)
         st.subheader('STEPS')
         st.session_state.option = st.radio('Select the step', options=['1. Load Glossary', '2. Manage Glossary', '3. Add new item to glossary'])
         add_vertical_space(5)
-        "st.session_state object: ", st.session_state
+        
+        # st.subheader('Clustering Distance')
+        # st.session_state.distance = st.slider('select distance', 0.00, 0.20, st.session_state.distance)
+        # "st.session_state object: ", st.session_state
 
 def main():
     """Main function."""

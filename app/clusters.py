@@ -43,7 +43,8 @@ def plot_clusters(df, embedding_column):
     # Add term names
     embeddings_df['term'] = df['term']
     # Plot the clusters
-    fig = px.scatter(embeddings_df, x='x', y='y', color='cluster', hover_data=['term'])
+    fig = px.scatter(embeddings_df, x='x', y='y', color="cluster" , hover_data=['term'])
+    # fig = px.scatter(embeddings_df, x='x', y='y', color='cluster', hover_data=['term'])
     return fig
 
 
