@@ -47,7 +47,10 @@ def create_openai_embeddings(df):
     load_dotenv(find_dotenv())
     def embed(text):
         return OpenAIEmbeddings().embed_query(text)
-    df['text'] = df['definition'] + ' ' + df['tags']
+    # df['text'] = df['definition'] + ' ' + df['tags']
+    df['text'] = df['definition'].fillna('') + ' ' + df['tags'].fillna('')
+    # Drop rows where 'text' is empty or null
+    # df = df[df['text'].str.strip() != '']
     df['embeddings'] = df['text'].apply(open_ai_embed)
     return df
       

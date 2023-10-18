@@ -156,7 +156,7 @@ def analyse_glossary(df):
             """)
 
 def manage():
-    st.title('Manage Glossary')
+    st.title('Use case 1: Manage Glossary')
     st.info(f'Username = {st.session_state.username}\nGlossary Loaded')
     st.dataframe(st.session_state.loaded_glossary)
 
@@ -167,7 +167,7 @@ def manage():
 
 def add_term():
     """Add a new term."""
-    st.title('Add new terms')
+    st.title('Use case 2: Adding new terms')
     data_entry, result = st.columns([1,2])
     
     new_term = data_entry.text_input('Enter new term', value=st.session_state.new_term)
